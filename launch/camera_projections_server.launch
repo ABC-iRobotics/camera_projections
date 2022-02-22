@@ -1,0 +1,4 @@
+<launch>
+  <node name="camera_projections_server" pkg="camera_projections" type="camera_projections_server.py" respawn="false" output="screen">
+  </node>
+</launch>
