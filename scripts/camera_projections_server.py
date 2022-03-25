@@ -1,5 +1,10 @@
 #! /usr/bin/env python
 
+## @package camera_projections
+# The ROS node for computing camera projections
+#
+# Defines a ROS action server for projecting 2D image-space points into 3D space, and to project points in 3D space onto the image plane
+
 import rospy
 import actionlib
 import tf
@@ -10,14 +15,32 @@ from bark_msgs.msg import CameraProjectionsAction, CameraProjectionsResult
 import numpy as np
 import time
 
+## CameraProjectionsServer class
+#
+# Defines a ROS action server for camera projections
 class CameraProjectionsServer:
+  '''
+    Class for camera projections
+  '''
+
+  ## Constructor of CameraProjectionsServer class
+  # Tries to load parameters 'camera_matrix' and 'distortion_vector' from the ROS parameter server
   def __init__(self):
+    ## @var server
+    #  The ROS action server for the CameraProjectionsAction action. The name of the action is "camera_projections"
     self.server = actionlib.SimpleActionServer('camera_projections', CameraProjectionsAction, self.execute, False)
     self.server.start()
+
+    ## @var listener
+    #  ROS tf.TransformListener(), Used for looking up transformations from tf
     self.listener = tf.TransformListener()
     rospy.sleep(0.4)
     try:
+      ## @var cam_mtx
+      #  Camera matrix from the "camera_matrix" parameter from the ROS parameter server
       self.cam_mtx = rospy.get_param('camera_matrix')
+      ## @var dist
+      #  Distrotion vector from the "distortion_vector" parameter from the ROS parameter server
       self.dist = rospy.get_param('distortion_vector')
     except:
       rospy.logerr("Could not load camera_matrix or distortion_vector from ROS param server, using default values ...")
@@ -25,9 +48,13 @@ class CameraProjectionsServer:
       # self.cam_mtx = # TODO
       # self.dist = # TODO
 
-
+  ## Project a point in 3D space onto the image plane
+  # @param points_3d geometry_msgs/Point[] type 3D points in coordinate frame "parent_frame"
+  # @param parent_frame string type name of the frame in which the 3D points are defined
   def project_3d_to_2d(self, points_3d, parent_frame):
     '''
+    Project a point in 3D space onto the image plane
+
     points3d: geometry_msgs/Point[] type 3D points in coordinate frame "parent_frame"
     parent_frame: string, name of the frame in which the 3D points are defined
     '''
@@ -56,8 +83,13 @@ class CameraProjectionsServer:
       return None
 
 
+  ## Project a point in 2D image-space into 3D space
+  # @param points2d geometry_msgs/Point[] type 2D points in the image space (x and y are in pixel units in the image, z is the distance of the point from the camera)
+  # @param target_frame string type name of the frame in which the deprojected 3D points will be returned
   def deproject_2d_to_3d(self, points_2d, target_frame):
     '''
+    Project a point in 2D image-space into 3D space
+
     points2d: geometry_msgs/Point[] type 2D points in the image space (x and y are in pixel units in the image, z is the distance of the point from the camera)
     target_frame: string, name of the frame in which the deprojected 3D points will be returned
     '''
@@ -89,7 +121,15 @@ class CameraProjectionsServer:
       return None
 
 
+  ## CameraProjectionsAction callback
+  # This function gets called whenever the ROS action server receives a goal from a client
+  # @param goal bark_msgs/CameraProjectionsGoal type action goal, contains the points to be projected (see action definition for further details)
   def execute(self, goal):
+    '''
+    CameraProjectionsAction callback
+
+    goal: bark_msgs/CameraProjectionsGoal, action goal, contains the points to be projected (see action definition for further details)
+    '''
     if goal.space_type == goal.PHYSICAL_3D:
       result = self.project_3d_to_2d(goal.points, goal.header.frame_id)
     else:
